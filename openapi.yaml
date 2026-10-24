@@ -1,0 +1,208 @@
+openapi: 3.0.3
+info:
+  title: Dishtansya Food Delivery API
+  description: >
+    Official REST API for **Dishtansya**, a global food delivery platform.
+    Built for the Multisys Back-End Practical Examination with database-driven architecture,
+    JWT authentication, asynchronous queued welcome emails, account locking security, and pessimistic database locking for order consistency.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+    description: Local Development Server
+
+paths:
+  /register:
+    post:
+      summary: Register a guest user
+      description: Captures guest user information and creates a user account. Triggers an asynchronous welcome email job.
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: backend@multisyscorp.com
+                password:
+                  type: string
+                  format: password
+                  example: test123
+      responses:
+        '201':
+          description: User successfully registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User successfully registered
+        '400':
+          description: Validation error or email already taken
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Email already taken
+
+  /login:
+    post:
+      summary: Authenticate / Login user
+      description: Verifies user credentials and returns a signed JSON Web Token (JWT). Implements account locking for 5 minutes after 5 consecutive failed attempts.
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: backend@multisyscorp.com
+                password:
+                  type: string
+                  format: password
+                  example: test123
+      responses:
+        '201':
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '401':
+          description: Invalid credentials or account locked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Invalid credentials
+
+  /order:
+    post:
+      summary: Create an order for a product
+      description: Places an order for a specified product and deducts the ordered quantity from available stock using database transactions and pessimistic locking.
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_id
+                - quantity
+              properties:
+                product_id:
+                  type: string
+                  example: "1"
+                quantity:
+                  type: string
+                  example: "2"
+      responses:
+        '201':
+          description: Successfully created an order
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: You have successfully ordered this product.
+        '400':
+          description: Unsuccessful order due to insufficient stock
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Failed to order this product due to unavailability of the stock
+        '401':
+          description: Missing or invalid JWT authorization token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Failed to order this product due to product not found
+
+  /products:
+    get:
+      summary: List all products
+      description: Retrieves available products with their stock levels.
+      tags:
+        - Products
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        name:
+                          type: string
+                          example: Double Cheeseburger Meal
+                        available_stock:
+                          type: integer
+                          example: 50
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
