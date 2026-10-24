@@ -264,7 +264,6 @@ Follow these steps to upload this project to your GitHub account:
 
 2. **From your terminal inside the project directory:**
    ```bash
-   cd "C:\Users\Mary Grace Aurora\dishtansya-api"
 
    # Initialize git if not already initialized
    git init
